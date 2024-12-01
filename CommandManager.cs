@@ -10,10 +10,12 @@ using YamlDotNet.Serialization;
 
 namespace StaffTimeCounterV2
 {
+
+
     public static class CommandManager
     {
+        private static readonly string pluginDirectory = AppDomain.CurrentDomain.BaseDirectory;
         private static readonly string timesDirectory = Path.Combine(pluginDirectory, "Times");
-        private static readonly string pluginDirectory = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
         private static readonly string summariesDirectory = Path.Combine(timesDirectory, "Summaries");
 
         public static void RegisterCommands()
