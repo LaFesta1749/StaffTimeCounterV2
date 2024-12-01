@@ -16,6 +16,11 @@ namespace StaffTimeCounterV2
                 .WithNamingConvention(CamelCaseNamingConvention.Instance)
             .Build();
 
+            var pluginDirectory = AppDomain.CurrentDomain.BaseDirectory;
+            if (string.IsNullOrEmpty(pluginDirectory))
+            {
+                throw new ArgumentException("Invalid path for plugin directory.");
+            }
             var configPath = Path.Combine(pluginDirectory, "config.yml");
             if (!File.Exists(configPath))
             {

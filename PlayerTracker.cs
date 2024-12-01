@@ -16,7 +16,7 @@ namespace StaffTimeCounterV2
         private static Dictionary<string, DateTime> playerJoinTimes = new Dictionary<string, DateTime>();
 
         private static readonly string timesDirectory = Path.Combine(pluginDirectory, "Times");
-        private static readonly string summariesDirectory = Path.Combine(timesDirectory, "Summaries");
+        private static readonly string summariesDirectory = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), "Times", "Summaries");
 
         public static void RegisterEvents()
         {
