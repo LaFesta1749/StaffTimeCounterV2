@@ -3,6 +3,7 @@ using PluginAPI.Core;
 using PluginAPI.Core.Attributes;
 using PluginAPI.Enums;
 using PluginAPI.Events;
+using PluginAPI.Loader.Features;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -13,7 +14,9 @@ namespace StaffTimeCounterV2
     public static class PlayerTracker
     {
         private static Dictionary<string, DateTime> playerJoinTimes = new Dictionary<string, DateTime>();
-        private static readonly string timesDirectory = "plugins/7777/StaffTimeCounterV2/Times";
+
+        private static readonly string timesDirectory = Path.Combine(pluginDirectory, "Times");
+        private static readonly string summariesDirectory = Path.Combine(timesDirectory, "Summaries");
 
         public static void RegisterEvents()
         {
@@ -22,6 +25,7 @@ namespace StaffTimeCounterV2
             if (!Directory.Exists(timesDirectory))
             {
                 Directory.CreateDirectory(timesDirectory);
+                Log.Info($"Times directory created at path: {timesDirectory}");
             }
         }
 

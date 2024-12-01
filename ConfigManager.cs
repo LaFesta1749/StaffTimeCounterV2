@@ -4,6 +4,7 @@ using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 using System.Collections.Generic;
 using PluginAPI.Core;
+using PluginAPI.Loader.Features;
 
 namespace StaffTimeCounterV2
 {
@@ -13,15 +14,23 @@ namespace StaffTimeCounterV2
         {
             var deserializer = new DeserializerBuilder()
                 .WithNamingConvention(CamelCaseNamingConvention.Instance)
-                .Build();
+            .Build();
 
-            if (!File.Exists("plugins/7777/StaffTimeCounterV2/config.yml"))
+            var configPath = Path.Combine(pluginDirectory, "config.yml");
+            if (!File.Exists(configPath))
             {
-                Log.Error("Config file not found at expected path: plugins/7777/StaffTimeCounterV2/config.yml");
+                Log.Info($"Config file not found at expected path: {configPath}. Generating default config.");
+                var defaultConfig = new Config();
+                var serializer = new SerializerBuilder().Build();
+                using (var writer = new StreamWriter(configPath))
+                {
+                    serializer.Serialize(writer, defaultConfig);
+                }
+                Log.Info("Default config file generated.");
                 return new Config();
             }
 
-            using (var reader = new StreamReader("plugins/7777/StaffTimeCounterV2/config.yml"))
+            using (var reader = new StreamReader(configPath))
             {
                 var config = deserializer.Deserialize<Config>(reader) ?? new Config();
                 Log.Info("Config successfully loaded.");

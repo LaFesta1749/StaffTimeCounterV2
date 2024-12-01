@@ -12,15 +12,22 @@ namespace StaffTimeCounterV2
 {
     public static class CommandManager
     {
-        private static readonly string timesDirectory = "plugins/7777/StaffTimeCounterV2/Times";
+        private static readonly string pluginDirectory = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+        private static readonly string timesDirectory = Path.Combine(pluginDirectory, "Times");
+        private static readonly string pluginDirectory = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
         private static readonly string summariesDirectory = Path.Combine(timesDirectory, "Summaries");
 
         public static void RegisterCommands()
         {
             Log.Info("Registering commands for StaffTimeCounterV2...");
+            if (!Directory.Exists(timesDirectory))
+            {
+                Directory.CreateDirectory(timesDirectory);
+            }
             if (!Directory.Exists(summariesDirectory))
             {
                 Directory.CreateDirectory(summariesDirectory);
+                Log.Info($"Summaries directory created at path: {summariesDirectory}");
             }
         }
 
