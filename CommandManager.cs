@@ -5,6 +5,7 @@ using PluginAPI.Enums;
 using System;
 using System.IO;
 using System.Collections.Generic;
+using System.Linq;
 using YamlDotNet.Serialization;
 
 namespace StaffTimeCounterV2
@@ -26,7 +27,9 @@ namespace StaffTimeCounterV2
         [PluginCommand("stc_summary", "Generates a summary of player times.", CommandType.RemoteAdmin)]
         public static void GenerateSummary()
         {
-            var summaryFilePath = Path.Combine(summariesDirectory, "Summary_All_Days.yml");
+            var startDate = Directory.GetFiles(timesDirectory, "StaffTimeCounter_Day_*.yml").Select(Path.GetFileNameWithoutExtension).Select(f => f.Replace("StaffTimeCounter_Day_", "")).OrderBy(f => f).FirstOrDefault();
+            var endDate = Directory.GetFiles(timesDirectory, "StaffTimeCounter_Day_*.yml").Select(Path.GetFileNameWithoutExtension).Select(f => f.Replace("StaffTimeCounter_Day_", "")).OrderBy(f => f).LastOrDefault();
+            var summaryFilePath = Path.Combine(summariesDirectory, $"{startDate} --- {endDate}.yml");
             var serializer = new SerializerBuilder().Build();
             List<TrackedTime> summaryTrackedTimes = new List<TrackedTime>();
 
@@ -40,7 +43,7 @@ namespace StaffTimeCounterV2
                         var trackedTimes = deserializer.Deserialize<List<TrackedTime>>(reader) ?? new List<TrackedTime>();
                         foreach (var trackedTime in trackedTimes)
                         {
-                            var existingEntry = summaryTrackedTimes.Find(t => t.UserId == trackedTime.UserId);
+                            var existingEntry = summaryTrackedTimes.FirstOrDefault(t => t.UserId == trackedTime.UserId);
                             if (existingEntry != null)
                             {
                                 existingEntry.ServerTime += trackedTime.ServerTime;
@@ -65,7 +68,17 @@ namespace StaffTimeCounterV2
                 serializer.Serialize(writer, summaryTrackedTimes);
             }
 
-            Log.Info("Summary generated for all available data.");
+            Log.Info($"Summary generated for the period {startDate} to {endDate}.");
         }
+
+
     }
+}
+
+public class TrackedTime
+{
+    public string Name { get; set; } = string.Empty;
+    public string UserId { get; set; } = string.Empty;
+    public string RankName { get; set; } = string.Empty;
+    public int ServerTime { get; set; }
 }
