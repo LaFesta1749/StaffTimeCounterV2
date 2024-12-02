@@ -43,6 +43,11 @@ namespace StaffTimeCounterV2
         [PluginEvent(ServerEventType.PlayerLeft)]
         public void OnPlayerLeft(Player player)
         {
+            if (player?.UserId == null)
+            {
+                Log.Warning("Player UserId is null. Skipping player leave tracking.");
+                return;
+            }
             if (activeSessions.ContainsKey(player.UserId))
             {
                 DateTime joinTime = activeSessions[player.UserId];
