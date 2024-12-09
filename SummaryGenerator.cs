@@ -209,6 +209,7 @@ namespace StaffTimeCounterV2
                     ServerTime = string.Format("{0:D2}:{1:D2}", record.ServerTime / 60, record.ServerTime % 60),
                     OverwatchTime = string.Format("{0:D2}:{1:D2}", record.OverwatchTime / 60, record.OverwatchTime % 60)
                 }).ToList();
+
                 serializer.Serialize(writer, formattedRecords);
             }
 

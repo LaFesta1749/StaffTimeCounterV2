@@ -71,7 +71,6 @@ namespace StaffTimeCounterV2
             try
             {
                 Log.Info($"Saving daily time for player {playerName} ({userId})");
-
                 if (!Directory.Exists(TimesPath))
                 {
                     Directory.CreateDirectory(TimesPath);
@@ -98,7 +97,7 @@ namespace StaffTimeCounterV2
                 if (existingRecord != null)
                 {
                     Log.Info($"Updating existing record for player {playerName} ({userId})");
-                    existingRecord.ServerTime += staffInfo.ServerTime;
+                    existingRecord.ServerTime += (int)(DateTime.Now - activeSessions[userId]).TotalMinutes;
                 }
                 else
                 {
@@ -108,11 +107,10 @@ namespace StaffTimeCounterV2
                         Name = playerName,
                         UserId = userId,
                         RankName = staffInfo.RankName,
-                        ServerTime = staffInfo.ServerTime,
+                        ServerTime = (int)(DateTime.Now - activeSessions[userId]).TotalMinutes,
                         OverwatchTime = staffInfo.OverwatchTime
                     });
                 }
-
                 Log.Info($"Writing data to file: {filePath}");
                 var serializer = new SerializerBuilder().Build();
                 using (var writer = new StreamWriter(filePath))
