@@ -16,7 +16,7 @@ namespace StaffTimeCounterV2
     {
         public string Name => "StaffTimeCounterV2";
         public string Author => "LaFesta1749";
-        public Version Version => new Version(1, 0, 5);
+        public Version Version => new Version(1, 0, 4);
 
         // Направи StaffMembers статична променлива
         public static Dictionary<string, StaffInfo> StaffMembers = new Dictionary<string, StaffInfo>();
