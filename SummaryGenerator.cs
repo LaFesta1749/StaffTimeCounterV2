@@ -3,6 +3,7 @@ using CommandSystem;
 using PluginAPI.Core;
 using PluginAPI.Core.Attributes;
 using PluginAPI.Events;
+using PluginAPI.Helpers;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -13,7 +14,7 @@ namespace StaffTimeCounterV2
 {
     public class SummaryGenerator
     {
-        private static readonly string BaseDirectory = @".config/SCP Secret Laboratory/PluginAPI/plugins/27049/StaffTimeCounterV2";
+        private static readonly string BaseDirectory = Path.Combine(Paths.GlobalPlugins.Plugins, "StaffTimeCounterV2");
         private static readonly string TimesPath = Path.Combine(BaseDirectory, "Times");
         private static readonly string SummariesPath = Path.Combine(BaseDirectory, "Summaries");
         private static readonly string ConfigPath = Path.Combine(BaseDirectory, "config.yml");

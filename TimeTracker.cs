@@ -3,6 +3,7 @@ using PluginAPI.Core;
 using PluginAPI.Core.Attributes;
 using PluginAPI.Enums;
 using PluginAPI.Events;
+using PluginAPI.Helpers;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -13,7 +14,7 @@ namespace StaffTimeCounterV2
 {
     public class TimeTracker
     {
-        private static readonly string TimesPath = @".config/SCP Secret Laboratory/PluginAPI/plugins/27049/StaffTimeCounterV2/Times";
+        private static readonly string TimesPath = Path.Combine(Paths.GlobalPlugins.Plugins, "StaffTimeCounterV2", "Times");
         private Dictionary<string, StaffInfo> staffMembers;
         private Dictionary<string, DateTime> activeSessions = new Dictionary<string, DateTime>();
 

@@ -3,6 +3,7 @@ using PluginAPI.Core;
 using PluginAPI.Core.Attributes;
 using PluginAPI.Enums;
 using PluginAPI.Events;
+using PluginAPI.Helpers;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -20,7 +21,7 @@ namespace StaffTimeCounterV2
         // Направи StaffMembers статична променлива
         public static Dictionary<string, StaffInfo> StaffMembers = new Dictionary<string, StaffInfo>();
 
-        private static readonly string ConfigPath = Path.Combine("plugins", "7777", "StaffTimeCounterV2", "config.yml");
+        private static readonly string ConfigPath = Path.Combine(Paths.GlobalPlugins.Plugins, "StaffTimeCounterV2", "config.yml");
 
         [PluginEvent(ServerEventType.WaitingForPlayers)]
         public void OnWaitingForPlayers()

@@ -9,36 +9,57 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Lib.Harmony" Version="2.2.2" />
+    <PackageReference Include="Lib.Harmony" Version="2.3.3" />
     <PackageReference Include="Northwood.PluginAPI" Version="13.1.2" />
-    <PackageReference Include="System.Text.Json" Version="9.0.0" />
-    <PackageReference Include="YamlDotNet" Version="11.1.1" />
+    <PackageReference Include="System.Text.Json" Version="9.0.1" />
+    <PackageReference Include="YamlDotNet" Version="16.3.0" />
   </ItemGroup>
 
   <ItemGroup>
     <Reference Include="0Harmony">
-      <HintPath>..\..\..\AppData\Roaming\SCP Secret Laboratory\PluginAPI\plugins\global\dependencies\0Harmony.dll</HintPath>
+      <HintPath>E:\Depedancies\0Harmony.dll</HintPath>
     </Reference>
     <Reference Include="Assembly-CSharp">
       <HintPath>D:\SteamLibrary\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\Assembly-CSharp.dll</HintPath>
     </Reference>
     <Reference Include="CommandSystem.Core">
-      <HintPath>..\..\..\OneDrive\Работен плот\Depedancies\CommandSystem.Core.dll</HintPath>
+      <HintPath>E:\Depedancies\CommandSystem.Core.dll</HintPath>
     </Reference>
     <Reference Include="Assembly-CSharp-firstpass">
-      <HintPath>..\..\..\OneDrive\Работен плот\Depedancies\MEC.dll</HintPath>
+      <HintPath>E:\Depedancies\MEC.dll</HintPath>
+    </Reference>
+    <Reference Include="MapEditorReborn">
+      <HintPath>E:\Depedancies\MapEditorReborn.dll</HintPath>
     </Reference>
     <Reference Include="Mirror">
-      <HintPath>..\..\..\OneDrive\Работен плот\Depedancies\Mirror.dll</HintPath>
+      <HintPath>E:\Depedancies\Mirror.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>E:\Depedancies\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="NorthwoodLib">
-      <HintPath>..\..\..\OneDrive\Работен плот\Depedancies\NorthwoodLib.dll</HintPath>
+      <HintPath>E:\Depedancies\NorthwoodLib.dll</HintPath>
     </Reference>
     <Reference Include="NWAPIPermissionSystem">
       <HintPath>..\..\..\AppData\Roaming\SCP Secret Laboratory\PluginAPI\plugins\global\NWAPIPermissionSystem.dll</HintPath>
     </Reference>
-    <Reference Include="UnityEngine.CoreModule">
-      <HintPath>..\..\..\OneDrive\Работен плот\Depedancies\UnityEngine.CoreModule.dll</HintPath>
+    <Reference Include="PluginAPI">
+      <HintPath>E:\Depedancies\PluginAPI.dll</HintPath>
+    </Reference>
+    <Reference Include="Pooling">
+      <HintPath>E:\Depedancies\Pooling.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEditor">
+      <HintPath>E:\Depedancies\UnityEditor.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine">
+      <HintPath>E:\Depedancies\UnityEngine.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.PhysicsModule">
+      <HintPath>E:\Depedancies\UnityEngine.PhysicsModule.dll</HintPath>
+    </Reference>
+    <Reference Include="YamlDotNet">
+      <HintPath>E:\Depedancies\YamlDotNet.dll</HintPath>
     </Reference>
   </ItemGroup>
 
