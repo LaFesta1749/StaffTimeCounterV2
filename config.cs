@@ -16,12 +16,12 @@ namespace StaffTimeCounterV2
     {
         public string Name => "StaffTimeCounterV2";
         public string Author => "LaFesta1749";
-        public Version Version => new Version(1, 0, 4);
+        public Version Version => new Version(1, 0, 5);
 
         // Направи StaffMembers статична променлива
         public static Dictionary<string, StaffInfo> StaffMembers = new Dictionary<string, StaffInfo>();
 
-        private static readonly string ConfigPath = Path.Combine(Paths.GlobalPlugins.Plugins, "StaffTimeCounterV2", "config.yml");
+        private static readonly string ConfigPath = Path.Combine(Paths.LocalPlugins.Plugins, "StaffTimeCounterV2", "config.yml");
 
         [PluginEvent(ServerEventType.WaitingForPlayers)]
         public void OnWaitingForPlayers()

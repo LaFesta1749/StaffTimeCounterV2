@@ -14,7 +14,7 @@ namespace StaffTimeCounterV2
 {
     public class TimeTracker
     {
-        private static readonly string TimesPath = Path.Combine(Paths.GlobalPlugins.Plugins, "StaffTimeCounterV2", "Times");
+        private static readonly string TimesPath = Path.Combine(Paths.LocalPlugins.Plugins, "StaffTimeCounterV2", "Times");
         private Dictionary<string, StaffInfo> staffMembers;
         private Dictionary<string, DateTime> activeSessions = new Dictionary<string, DateTime>();
 

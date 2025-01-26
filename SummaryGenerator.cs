@@ -14,7 +14,7 @@ namespace StaffTimeCounterV2
 {
     public class SummaryGenerator
     {
-        private static readonly string BaseDirectory = Path.Combine(Paths.GlobalPlugins.Plugins, "StaffTimeCounterV2");
+        private static readonly string BaseDirectory = Path.Combine(Paths.LocalPlugins.Plugins, "StaffTimeCounterV2");
         private static readonly string TimesPath = Path.Combine(BaseDirectory, "Times");
         private static readonly string SummariesPath = Path.Combine(BaseDirectory, "Summaries");
         private static readonly string ConfigPath = Path.Combine(BaseDirectory, "config.yml");
@@ -207,8 +207,8 @@ namespace StaffTimeCounterV2
                     record.Name,
                     record.UserId,
                     record.RankName,
-                    ServerTime = string.Format("{0:D2}:{1:D2}", record.ServerTime / 60, record.ServerTime % 60),
-                    OverwatchTime = string.Format("{0:D2}:{1:D2}", record.OverwatchTime / 60, record.OverwatchTime % 60)
+                    ServerTime = $"\"{string.Format("{0:D2}:{1:D2}", record.ServerTime / 60, record.ServerTime % 60)}\"",
+                    OverwatchTime = $"\"{string.Format("{0:D2}:{1:D2}", record.OverwatchTime / 60, record.OverwatchTime % 60)}\""
                 }).ToList();
 
                 serializer.Serialize(writer, formattedRecords);
