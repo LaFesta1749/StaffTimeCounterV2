@@ -1,9 +1,6 @@
-﻿using CommandSystem;
-using LabApi.Features.Console;
-using LabApi.Loader.Features;
-using PluginAPI.Core.Attributes;
-using PluginAPI.Enums;
-using PluginAPI.Events;
+﻿using Exiled.API.Features;
+using CommandSystem;
+using StaffTimeCounterV2.Models;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -12,105 +9,95 @@ using YamlDotNet.Serialization;
 
 namespace StaffTimeCounterV2
 {
-    public class SummaryGenerator
+    [CommandHandler(typeof(RemoteAdminCommandHandler))]
+    [CommandHandler(typeof(GameConsoleCommandHandler))]
+    public class SummaryGenerator : ICommand
     {
-        private static readonly string BaseDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "plugins", "StaffTimeCounterV2");
-        private static readonly string TimesPath = Path.Combine(BaseDirectory, "Times");
-        private static readonly string SummariesPath = Path.Combine(BaseDirectory, "Summaries");
-        private static readonly string ConfigPath = Path.Combine(BaseDirectory, "config.yml");
+        public string Command => "stc_summary";
+        public string[] Aliases => new string[0];
+        public string Description => "Generates a summary of staff members' playtime.";
+
+        private readonly string timesDirectory = Path.Combine(Paths.Configs, "StaffTimeCounterV2", "Data", "Times");
+        private readonly string summariesDirectory = Path.Combine(Paths.Configs, "StaffTimeCounterV2", "Data", "Summaries");
 
         public SummaryGenerator()
         {
-            // Nothing needed in the constructor anymore
+            EnsureDirectoriesExist();
         }
 
-        [PluginEntryPoint("StaffTimeCounterV2", "1.0.7", "Tracks staff playtime and generates reports.", "LaFesta1749")]
-        public void OnStart()
+        private void EnsureDirectoriesExist()
         {
-            Logger.Info("StaffTimeCounterV2 plugin has been loaded.");
+            if (!Directory.Exists(timesDirectory))
+                Directory.CreateDirectory(timesDirectory);
 
-            // Load StaffTimeCounter config properly
-            new StaffTimeCounter().Load();
-
-            // Register events
-            EventManager.RegisterEvents(this);
-            EventManager.RegisterEvents(new TimeTracker(StaffTimeCounter.StaffMembers));
-
-            // Ensure the necessary folders exist
-            if (!Directory.Exists(SummariesPath))
-                Directory.CreateDirectory(SummariesPath);
-
-            if (!Directory.Exists(TimesPath))
-                Directory.CreateDirectory(TimesPath);
+            if (!Directory.Exists(summariesDirectory))
+                Directory.CreateDirectory(summariesDirectory);
         }
 
-        public void OnSummaryCommandWithLogging()
+        public bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
         {
+            if (arguments.Count == 0)
+            {
+                response = "Usage: stc_summary Admin";
+                return false;
+            }
+
+            string mode = arguments.At(0).ToLower();
+
+            if (mode != "admin")
+            {
+                response = "Invalid argument. Use: stc_summary Admin";
+                return false;
+            }
+
             try
             {
-                Logger.Info($"Using TimesPath: {TimesPath}");
+                var files = Directory.GetFiles(timesDirectory, "StaffTimeCounter_Day_*.yml");
 
-                if (!Directory.Exists(TimesPath))
-                {
-                    Logger.Warn($"The Times directory does not exist: {TimesPath}");
-                    return;
-                }
-
-                var files = Directory.GetFiles(TimesPath, "StaffTimeCounter_Day_*.yml");
                 if (files.Length == 0)
                 {
-                    Logger.Warn("No files found in Times directory to process.");
-                    return;
+                    response = "No daily files found to generate a summary.";
+                    return false;
                 }
 
-                List<DailyRecord> combinedRecords = new List<DailyRecord>();
+                List<DailyRecord> combinedRecords = new();
                 DateTime? startDate = null;
                 DateTime? endDate = null;
                 DateTime today = DateTime.Today;
 
                 foreach (var filePath in files)
                 {
-                    Logger.Info($"Processing file: {filePath}");
                     string fileName = Path.GetFileNameWithoutExtension(filePath);
                     string datePart = fileName.Replace("StaffTimeCounter_Day_", "");
+
                     if (!DateTime.TryParseExact(datePart, "dd_MM_yyyy", null, System.Globalization.DateTimeStyles.None, out DateTime fileDate))
                     {
-                        Logger.Warn($"Could not parse date from file: {filePath}");
+                        Log.Debug($"Invalid date format in file: {filePath}");
                         continue;
                     }
 
                     if (fileDate == today)
-                    {
-                        Logger.Info($"Skipping today's file: {filePath}");
                         continue;
-                    }
 
                     if (startDate == null || fileDate < startDate) startDate = fileDate;
                     if (endDate == null || fileDate > endDate) endDate = fileDate;
 
                     var deserializer = new DeserializerBuilder().Build();
-                    using (var reader = new StreamReader(filePath))
+                    using var reader = new StreamReader(filePath);
+
+                    var dailyRecords = deserializer.Deserialize<List<DailyRecord>>(reader) ?? new List<DailyRecord>();
+
+                    foreach (var record in dailyRecords)
                     {
-                        var dailyRecords = deserializer.Deserialize<List<DailyRecord>>(reader) ?? new List<DailyRecord>();
-                        foreach (var record in dailyRecords)
+                        var existing = combinedRecords.FirstOrDefault(x => x.UserId == record.UserId);
+                        if (existing != null)
                         {
-                            var existingRecord = combinedRecords.FirstOrDefault(x => x.UserId == record.UserId);
-                            if (existingRecord != null)
-                            {
-                                existingRecord.ServerTime += record.ServerTime;
-                                existingRecord.OverwatchTime += record.OverwatchTime;
-                            }
-                            else
-                            {
-                                combinedRecords.Add(new DailyRecord
-                                {
-                                    Name = record.Name,
-                                    UserId = record.UserId,
-                                    RankName = record.RankName,
-                                    ServerTime = record.ServerTime,
-                                    OverwatchTime = record.OverwatchTime
-                                });
-                            }
+                            existing.ServerTime += record.ServerTime;
+                            existing.OverwatchTime += record.OverwatchTime;
+                        }
+                        else
+                        {
+                            combinedRecords.Add(record);
                         }
                     }
 
@@ -120,27 +107,34 @@ namespace StaffTimeCounterV2
                 if (startDate != null && endDate != null)
                 {
                     SaveSummary(startDate.Value, endDate.Value, combinedRecords);
+                    response = $"Summary generated successfully from {startDate.Value:dd.MM.yyyy} to {endDate.Value:dd.MM.yyyy}.";
+                    return true;
                 }
                 else
                 {
-                    Logger.Warn("No valid records found to generate a summary.");
+                    response = "No valid data found to generate a summary.";
+                    return false;
                 }
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                Logger.Error($"Error generating summary: {e.Message}");
+                Log.Debug($"Summary generation error: {ex}");
+                response = $"Error generating summary: {ex.Message}";
+                return false;
             }
         }
 
-        private void SaveSummary(DateTime start, DateTime end, List<DailyRecord> combinedRecords)
+        private void SaveSummary(DateTime start, DateTime end, List<DailyRecord> records)
         {
-            string summaryFileName = $"{start:dd_MM_yyyy} --- {end:dd_MM_yyyy}.yml";
-            string summaryFilePath = Path.Combine(SummariesPath, summaryFileName);
-
-            var serializer = new SerializerBuilder().Build();
-            using (var writer = new StreamWriter(summaryFilePath))
+            try
             {
-                var formattedRecords = combinedRecords.Select(record => new
+                string fileName = $"{start:dd_MM_yyyy} --- {end:dd_MM_yyyy}.yml";
+                string filePath = Path.Combine(summariesDirectory, fileName);
+
+                var serializer = new SerializerBuilder().Build();
+                using var writer = new StreamWriter(filePath);
+
+                var formatted = records.Select(record => new
                 {
                     record.Name,
                     record.UserId,
@@ -149,40 +143,14 @@ namespace StaffTimeCounterV2
                     OverwatchTime = $"\"{record.OverwatchTime / 60:D2}:{record.OverwatchTime % 60:D2}\""
                 }).ToList();
 
-                serializer.Serialize(writer, formattedRecords);
+                serializer.Serialize(writer, formatted);
+
+                Log.Debug($"Summary saved successfully at: {filePath}");
             }
-
-            Logger.Info($"Summary saved at: {summaryFilePath}");
-        }
-    }
-
-    [CommandHandler(typeof(RemoteAdminCommandHandler))]
-    [CommandHandler(typeof(GameConsoleCommandHandler))]
-    public class SummaryCommandHandler : ICommand
-    {
-        public string Command { get; } = "stc_summary";
-        public string[] Aliases { get; } = new[] { "stafftimecounter_summary" };
-        public string Description { get; } = "Generates a summary of staff members' playtime.";
-
-        public bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
-        {
-            if (arguments.Count == 0)
+            catch (Exception ex)
             {
-                response = "Usage: stc_summary admin OR stc_summary user";
-                return false;
+                Log.Debug($"Failed to save summary file: {ex.Message}");
             }
-
-            string summaryType = arguments.At(0).ToLower();
-
-            if (summaryType == "admin" || summaryType == "user")
-            {
-                new SummaryGenerator().OnSummaryCommandWithLogging();
-                response = "Summary report generated successfully.";
-                return true;
-            }
-
-            response = "Invalid summary type. Use 'admin' or 'user'.";
-            return false;
         }
     }
 }

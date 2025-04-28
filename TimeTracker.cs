@@ -1,140 +1,165 @@
-﻿// LabAPI imports
-using LabApi.Events.Arguments;
-using LabApi.Events.Arguments.PlayerEvents;
-using LabApi.Features.Console;
-using LabApi.Loader.Features;
-using PluginAPI.Core.Attributes;
-using PluginAPI.Enums;
-using PluginAPI.Events;
+﻿using Exiled.API.Features;
+using Exiled.Events.Handlers;
+using StaffTimeCounterV2.Models;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using YamlDotNet.Serialization;
+using Player = Exiled.Events.Handlers.Player;
 
 namespace StaffTimeCounterV2
 {
     public class TimeTracker
     {
-        private static readonly string TimesPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "plugins", "StaffTimeCounterV2", "Times");
-        private Dictionary<string, StaffInfo> staffMembers;
-        private Dictionary<string, DateTime> activeSessions = new Dictionary<string, DateTime>();
+        private readonly Dictionary<string, DateTime> activeSessions = new();
+        private readonly string timesDirectory;
 
-        public TimeTracker(Dictionary<string, StaffInfo> staffMembers)
+        public TimeTracker()
         {
-            this.staffMembers = staffMembers;
-            EventManager.RegisterEvents(this); // <-- ТУК регистрираш събитията
+            timesDirectory = Path.Combine(Paths.Configs, "StaffTimeCounterV2", "Data", "Times");
+            EnsureDirectoriesExist();
         }
 
-        [PluginEvent(ServerEventType.PlayerJoined)]
-        public void OnPlayerJoined(PlayerJoinedEventArgs ev)
+        private void EnsureDirectoriesExist()
         {
-            Logger.Info($"Player joined: {ev.Player.UserId}");
-
-            if (StaffTimeCounter.StaffMembers.ContainsKey(ev.Player.UserId.ToLower()))
+            if (!Directory.Exists(timesDirectory))
             {
-                Logger.Info($"Player {ev.Player.Nickname} ({ev.Player.UserId}) is being tracked.");
-                activeSessions[ev.Player.UserId] = DateTime.Now;
+                Directory.CreateDirectory(timesDirectory);
+                Log.Debug($"[TimeTracker] Created Times directory at: {timesDirectory}");
+            }
+        }
+
+        public void Register()
+        {
+            Player.Verified += OnPlayerVerified;
+            Player.Left += OnPlayerLeft;
+            Log.Debug("[TimeTracker] Registered to Player events (Verified, Left).");
+        }
+
+        public void Unregister()
+        {
+            Player.Verified -= OnPlayerVerified;
+            Player.Left -= OnPlayerLeft;
+            Log.Debug("[TimeTracker] Unregistered from Player events (Verified, Left).");
+        }
+
+        private void OnPlayerVerified(Exiled.Events.EventArgs.Player.VerifiedEventArgs ev)
+        {
+            if (Plugin.Instance?.ConfigManager?.StaffMembers == null)
+            {
+                Log.Warn("[TimeTracker] ConfigManager or StaffMembers is null! Skipping tracking on verify.");
+                return;
+            }
+
+            if (ev.Player == null || string.IsNullOrWhiteSpace(ev.Player.UserId))
+            {
+                Log.Warn("[TimeTracker] Player has no UserId on verify! Skipping tracking.");
+                return;
+            }
+
+            string userId = ev.Player.UserId.ToLower();
+
+            if (Plugin.Instance.ConfigManager.StaffMembers.ContainsKey(userId))
+            {
+                activeSessions[userId] = DateTime.UtcNow;
+                Log.Debug($"[TimeTracker] Started tracking {ev.Player.Nickname} ({ev.Player.UserId}).");
             }
             else
             {
-                Logger.Info($"Player {ev.Player.Nickname} ({ev.Player.UserId}) is not being tracked.");
+                Log.Debug($"[TimeTracker] {ev.Player.Nickname} ({ev.Player.UserId}) is not listed in StaffMembers, skipping tracking.");
             }
         }
 
-        [PluginEvent(ServerEventType.PlayerLeft)]
-        public void OnPlayerLeft(PlayerLeftEventArgs ev)
+        private void OnPlayerLeft(Exiled.Events.EventArgs.Player.LeftEventArgs ev)
         {
-            if (ev.Player?.UserId == null)
+            if (Plugin.Instance?.ConfigManager?.StaffMembers == null)
             {
-                Logger.Warn("Player UserId is null. Skipping player leave tracking.");
+                Log.Warn("[TimeTracker] ConfigManager or StaffMembers is null! Skipping tracking on leave.");
                 return;
             }
-            if (activeSessions.ContainsKey(ev.Player.UserId))
+
+            if (ev.Player == null || string.IsNullOrWhiteSpace(ev.Player.UserId))
+                return;
+
+            string userId = ev.Player.UserId.ToLower();
+
+            if (activeSessions.TryGetValue(userId, out DateTime startTime))
             {
-                DateTime joinTime = activeSessions[ev.Player.UserId];
-                TimeSpan sessionDuration = DateTime.Now - joinTime;
-                Logger.Info($"Tracking end time for player {ev.Player.Nickname} ({ev.Player.UserId}) - Session duration: {sessionDuration.TotalMinutes} minutes");
+                TimeSpan duration = DateTime.UtcNow - startTime;
 
-                if (StaffTimeCounter.StaffMembers.TryGetValue(ev.Player.UserId.ToLower(), out StaffInfo staffInfo))
+                int minutesPlayed = (int)duration.TotalMinutes;
+                if (duration.TotalSeconds >= 30 && minutesPlayed == 0)
+                    minutesPlayed = 1;
+
+                if (minutesPlayed > 0 && Plugin.Instance.ConfigManager.StaffMembers.TryGetValue(userId, out StaffInfo staffInfo))
                 {
-                    Logger.Info($"ServerTime before adding session duration: {staffInfo.ServerTime}");
-                    staffInfo.ServerTime += (int)sessionDuration.TotalMinutes;
-                    Logger.Info($"ServerTime after adding session duration: {staffInfo.ServerTime}");
-
-                    SaveDailyTime(ev.Player.UserId, ev.Player.Nickname, staffInfo);
-                }
-                activeSessions.Remove(ev.Player.UserId);
-            }
-        }
-
-        private void SaveDailyTime(string userId, string playerName, StaffInfo staffInfo)
-        {
-            try
-            {
-                Logger.Info($"Saving daily time for player {playerName} ({userId})");
-
-                if (!Directory.Exists(TimesPath))
-                {
-                    Directory.CreateDirectory(TimesPath);
-                    Logger.Info($"Created Times directory at path: {TimesPath}");
-                }
-
-                string fileName = $"StaffTimeCounter_Day_{DateTime.Now:dd_MM_yyyy}.yml";
-                string filePath = Path.Combine(TimesPath, fileName);
-
-                Logger.Info($"Saving data to file: {filePath}");
-
-                List<DailyRecord> dailyRecords = new List<DailyRecord>();
-                if (File.Exists(filePath))
-                {
-                    Logger.Info($"File {filePath} already exists. Loading existing records...");
-                    var deserializer = new DeserializerBuilder().Build();
-                    using (var reader = new StreamReader(filePath))
-                    {
-                        dailyRecords = deserializer.Deserialize<List<DailyRecord>>(reader) ?? new List<DailyRecord>();
-                    }
-                }
-
-                var existingRecord = dailyRecords.FirstOrDefault(x => x.UserId == userId);
-                if (existingRecord != null)
-                {
-                    Logger.Info($"Updating existing record for player {playerName} ({userId})");
-                    existingRecord.ServerTime += (int)(DateTime.Now - activeSessions[userId]).TotalMinutes;
+                    staffInfo.ServerTime += minutesPlayed;
+                    SaveDailyRecord(ev.Player.Nickname, ev.Player.UserId, staffInfo);
                 }
                 else
                 {
-                    Logger.Info($"Creating new record for player {playerName} ({userId})");
+                    Log.Debug($"[TimeTracker] {ev.Player.Nickname} played less than 30 seconds. Skipping save.");
+                }
+
+                activeSessions.Remove(userId);
+                Log.Debug($"[TimeTracker] Stopped tracking {ev.Player.Nickname} ({ev.Player.UserId}), played {minutesPlayed} minutes.");
+            }
+            else
+            {
+                Log.Debug($"[TimeTracker] No active session found for {ev.Player.Nickname} ({ev.Player.UserId}).");
+            }
+        }
+
+        private void SaveDailyRecord(string playerName, string userId, StaffInfo staffInfo)
+        {
+            try
+            {
+                string todayDate = DateTime.Now.ToString("dd_MM_yyyy");
+                string fileName = $"StaffTimeCounter_Day_{todayDate}.yml";
+                string filePath = Path.Combine(timesDirectory, fileName);
+
+                List<DailyRecord> dailyRecords = new();
+
+                if (File.Exists(filePath))
+                {
+                    var deserializer = new DeserializerBuilder().Build();
+                    using var reader = new StreamReader(filePath);
+                    dailyRecords = deserializer.Deserialize<List<DailyRecord>>(reader) ?? new List<DailyRecord>();
+                    Log.Debug($"[TimeTracker] Loaded existing daily records ({dailyRecords.Count}) from {filePath}.");
+                }
+
+                var existingRecord = dailyRecords.FirstOrDefault(r => r.UserId == userId);
+                if (existingRecord != null)
+                {
+                    existingRecord.ServerTime = staffInfo.ServerTime;
+                    existingRecord.OverwatchTime = staffInfo.OverwatchTime;
+                    Log.Debug($"[TimeTracker] Updated record for {playerName} ({userId}).");
+                }
+                else
+                {
                     dailyRecords.Add(new DailyRecord
                     {
                         Name = playerName,
                         UserId = userId,
                         RankName = staffInfo.RankName,
-                        ServerTime = (int)(DateTime.Now - activeSessions[userId]).TotalMinutes,
+                        ServerTime = staffInfo.ServerTime,
                         OverwatchTime = staffInfo.OverwatchTime
                     });
+                    Log.Debug($"[TimeTracker] Added new record for {playerName} ({userId}).");
                 }
 
                 var serializer = new SerializerBuilder().Build();
-                using (var writer = new StreamWriter(filePath))
-                {
-                    serializer.Serialize(writer, dailyRecords);
-                    Logger.Info($"Successfully saved data for player {playerName} ({userId})");
-                }
+                using var writer = new StreamWriter(filePath, false); // overwrite file
+                serializer.Serialize(writer, dailyRecords);
+                writer.Flush();
+
+                Log.Debug($"[TimeTracker] Successfully saved daily records to {filePath}.");
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                Logger.Error($"Error while saving daily time for player {playerName} ({userId}): {e.Message}");
+                Log.Error($"[TimeTracker] Failed to save daily record for {playerName} ({userId}): {ex}");
             }
         }
-    }
-
-    public class DailyRecord
-    {
-        public string Name { get; set; } = string.Empty;
-        public string UserId { get; set; } = string.Empty;
-        public string RankName { get; set; } = string.Empty;
-        public int ServerTime { get; set; } = 0;
-        public int OverwatchTime { get; set; } = 0;
     }
 }

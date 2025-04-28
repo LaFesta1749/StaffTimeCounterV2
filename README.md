@@ -1,84 +1,91 @@
 # StaffTimeCounterV2
 
-Track your staff members' playtime automatically, generate detailed daily logs, and compile weekly reports with ease.
+**StaffTimeCounterV2** is a powerful and lightweight **Exiled plugin** for **SCP: Secret Laboratory**, designed specifically to **track and record the playtime** of **Staff Members** (Admins, Moderators, etc.) on your server.
+
+It automatically saves daily playtime statistics into YAML files, provides detailed summaries, and ensures that server staff activity is monitored transparently and reliably.
 
 ---
 
-## Overview
-**StaffTimeCounterV2** is a plugin for SCP: Secret Laboratory servers (LabAPI) that monitors specific staff members' active time on the server. It creates daily records and can generate comprehensive summary reports. Perfect for servers that require staff time accountability.
+## ✨ Short Description for GitHub
+
+> A high-precision Exiled plugin for SCP:SL that tracks, records, and summarizes staff playtime with daily logging.
 
 ---
 
-## Features
-- 🕒 Real-time tracking of staff members' online time.
-- 📅 Daily YAML files recording individual staff activity.
-- 🔹 Weekly or manual summary generation.
-- 🔸 Automatic creation of `config.yml` if missing.
-- ⚡ Stable and lightweight (optimized for LabAPI servers).
-- ✅ Easy integration into your current server setup.
+## ✨ Features
+
+- ✅ Tracks **online time** (minutes played) of each listed staff member.
+- ✅ Records data into **daily .yml files** under organized directories.
+- ✅ Summarizes multiple days into a **final summary file** via RA or server console command.
+- ✅ Supports **automatic folder creation**.
+- ✅ **Minimum playtime** detection (skip if <30 seconds).
+- ✅ **Debug mode** for easy troubleshooting.
+- ✅ Fully configurable via `config.yml`.
 
 ---
 
-## Installation
+## 📁 Folder Structure
 
-1. Download the latest compiled `StaffTimeCounterV2.dll` from the releases.
-2. Place the DLL into your server's `plugins/StaffTimeCounterV2/` directory.
-3. Start your server once to auto-generate the `config.yml` file.
-4. Edit `config.yml` to add your staff members. Example:
-
-```yaml
-76561198047345881@steam: owner
-76561199048565475@steam: head_of_staff
+```
+EXILED/Configs/StaffTimeCounterV2/
+|
+├── config.yml            # Staff members listed here
+|
+├── Data/
+    |
+    ├── Times/             # Daily playtime logs per staff member
+    |
+    └── Summaries/         # Summarized reports over time periods
 ```
 
-5. Restart the server. Done!
+---
+
+## ⚙️ Configuration for Exiled Config file
+
+```yaml
+stcv2:
+  is_enabled: true
+  debug: false
+```
+
+## ⚙️ Configuration located in EXILED/Configs/StaffTimeCounterV2/Config/config.yml
+
+```yaml
+staff_members:
+  XXXXXXXXXXXX@steam: owner #name
+  XXXXXXXXXXXX@steam: head_of_staff #name
+  XXXXXXXXXXXX@steam: moderator #name
+  # Add more SteamIDs here...
+```
 
 ---
 
-## Configuration Files
+## 🔧 Commands
 
-- **config.yml**: Contains the list of tracked staff members and their ranks.
-- **Times Folder**: Daily YAML files for each tracked day.
-- **Summaries Folder**: Generated summary files containing combined times over periods.
+| Command              | Description                                      | Where to use                   |
+|:---------------------|:-------------------------------------------------|:-------------------------------|
+| `stc_summary Admin`   | Generates a summary from existing Times records. | RA Console or Server Console   |
 
----
-
-## Commands
-
-| Command | Description |
-|:---|:---|
-| `.stc_summary admin` | Manually generate an admin-specific summary report. |
-| `.stc_summary user` | Manually generate a user-specific summary report. |
-
-You can use these commands via **RemoteAdmin** or **GameConsole**.
+> **Note:** Command is **case-insensitive**.
 
 ---
 
-## Requirements
-- SCP: Secret Laboratory Server running LabAPI.
-- LabAPI Loader (properly installed).
+## 🚫 Notes
+
+- Only **staff members** listed in `config.yml` are tracked.
+- Players disconnected **under 30 seconds** are ignored.
+- Files are written with **local server time** (not UTC).
+- Daily files are named like: `StaffTimeCounter_Day_29_04_2025.yml` (`date_month_year`)
 
 ---
 
-## Notes
-- The plugin automatically skips today's active file when generating summaries.
-- Daily records will be deleted after being included in a summary.
-- The plugin is designed to fail gracefully if no staff are configured.
+## ❤  Credits
+
+- Plugin created by **LaFesta1749**.
+- Built with love and precision using the **Exiled 9.6.0-beta7** framework.
 
 ---
 
-## Future Plans
-- Optional Discord Webhook notifications for summaries.
-- Playtime goals and auto-promotions based on total playtime.
-- Better admin control over records (reset, manual correction).
-
----
-
-## Credits
-Created and maintained by **LaFesta1749**.
-
----
-
-## License
-This project is licensed under the MIT License.
+# 🎉 Thank you for using StaffTimeCounterV2!
+> Transparency and accountability made easy for your SCP:SL server.
 
