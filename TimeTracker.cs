@@ -48,13 +48,13 @@ namespace StaffTimeCounterV2
         {
             if (Plugin.Instance?.ConfigManager?.StaffMembers == null)
             {
-                Log.Warn("[TimeTracker] ConfigManager or StaffMembers is null! Skipping tracking on verify.");
+                Log.Debug("[TimeTracker] ConfigManager or StaffMembers is null! Skipping tracking on verify.");
                 return;
             }
 
             if (ev.Player == null || string.IsNullOrWhiteSpace(ev.Player.UserId))
             {
-                Log.Warn("[TimeTracker] Player has no UserId on verify! Skipping tracking.");
+                Log.Debug("[TimeTracker] Player has no UserId on verify! Skipping tracking.");
                 return;
             }
 
@@ -75,7 +75,7 @@ namespace StaffTimeCounterV2
         {
             if (Plugin.Instance?.ConfigManager?.StaffMembers == null)
             {
-                Log.Warn("[TimeTracker] ConfigManager or StaffMembers is null! Skipping tracking on leave.");
+                Log.Debug("[TimeTracker] ConfigManager or StaffMembers is null! Skipping tracking on leave.");
                 return;
             }
 
@@ -158,7 +158,7 @@ namespace StaffTimeCounterV2
             }
             catch (Exception ex)
             {
-                Log.Error($"[TimeTracker] Failed to save daily record for {playerName} ({userId}): {ex}");
+                Log.Debug($"[TimeTracker] Failed to save daily record for {playerName} ({userId}): {ex}");
             }
         }
     }
