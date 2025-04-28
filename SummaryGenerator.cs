@@ -21,70 +21,27 @@ namespace StaffTimeCounterV2
 
         public SummaryGenerator()
         {
-            if (!Directory.Exists(SummariesPath))
-            {
-                Directory.CreateDirectory(SummariesPath);
-            }
-
-            LoadConfig();
+            // Nothing needed in the constructor anymore
         }
 
-        [PluginEntryPoint("StaffTimeCounterV2", "1.0.0", "Tracks staff playtime and generates reports.", "LaFesta1749")]
+        [PluginEntryPoint("StaffTimeCounterV2", "1.0.7", "Tracks staff playtime and generates reports.", "LaFesta1749")]
         public void OnStart()
         {
             Logger.Info("StaffTimeCounterV2 plugin has been loaded.");
+
+            // Load StaffTimeCounter config properly
+            new StaffTimeCounter().Load();
+
+            // Register events
             EventManager.RegisterEvents(this);
             EventManager.RegisterEvents(new TimeTracker(StaffTimeCounter.StaffMembers));
-        }
 
-        private void LoadConfig()
-        {
-            try
-            {
-                if (!File.Exists(ConfigPath))
-                {
-                    Logger.Warn("Config file not found. Creating example config...");
-                    CreateExampleConfig();
-                    return;
-                }
+            // Ensure the necessary folders exist
+            if (!Directory.Exists(SummariesPath))
+                Directory.CreateDirectory(SummariesPath);
 
-                var deserializer = new DeserializerBuilder().Build();
-                using (var reader = new StreamReader(ConfigPath))
-                {
-                    StaffTimeCounter.StaffMembers = deserializer.Deserialize<Dictionary<string, string>>(reader)
-                        .ToDictionary(x => x.Key.Trim(), x => new StaffInfo { RankName = x.Value });
-                }
-
-                Logger.Info($"Loaded staff members: {string.Join(", ", StaffTimeCounter.StaffMembers.Keys)}");
-            }
-            catch (Exception e)
-            {
-                Logger.Error($"Error while loading config: {e.Message}");
-            }
-        }
-
-        private void CreateExampleConfig()
-        {
-            try
-            {
-                var exampleConfig = new Dictionary<string, string>
-                {
-                    { "76561198047345881@steam", "owner" },
-                    { "76561199048565475@steam", "head_of_staff" }
-                };
-
-                var serializer = new SerializerBuilder().Build();
-                using (var writer = new StreamWriter(ConfigPath))
-                {
-                    serializer.Serialize(writer, exampleConfig);
-                }
-
-                Logger.Info("Example config.yml has been created. Please configure the plugin.");
-            }
-            catch (Exception e)
-            {
-                Logger.Error($"Error while creating example config: {e.Message}");
-            }
+            if (!Directory.Exists(TimesPath))
+                Directory.CreateDirectory(TimesPath);
         }
 
         public void OnSummaryCommandWithLogging()

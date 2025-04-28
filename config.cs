@@ -10,39 +10,51 @@ namespace StaffTimeCounterV2
 {
     public class StaffTimeCounter
     {
-        public string Name => "StaffTimeCounterV2";
-        public string Author => "LaFesta1749";
-        public Version Version => new Version(1, 0, 6);
+        public static Dictionary<string, StaffInfo> StaffMembers { get; private set; } = new();
 
-        public static Dictionary<string, StaffInfo> StaffMembers = new Dictionary<string, StaffInfo>();
-
-        private static readonly string ConfigPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "plugins", "StaffTimeCounterV2", "config.yml");
+        private static readonly string BaseDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "plugins", "StaffTimeCounterV2");
+        private static readonly string ConfigPath = Path.Combine(BaseDirectory, "config.yml");
 
         public void Load()
         {
-            Logger.Info($"Loading StaffTimeCounterV2 - Version: {Version}");
-
-            if (!File.Exists(ConfigPath))
-            {
-                Logger.Error("Config file not found. Creating example config...");
-                CreateExampleConfig();
-                return;
-            }
+            Logger.Info("Loading StaffTimeCounterV2 configuration...");
 
             try
             {
-                var deserializer = new DeserializerBuilder().Build();
-                using (var reader = new StreamReader(ConfigPath))
+                // Ensure base directory exists
+                if (!Directory.Exists(BaseDirectory))
                 {
-                    StaffMembers = deserializer.Deserialize<Dictionary<string, string>>(reader)
-                        .ToDictionary(x => x.Key.Trim(), x => new StaffInfo { RankName = x.Value });
+                    Directory.CreateDirectory(BaseDirectory);
+                    Logger.Info($"Created plugin base directory: {BaseDirectory}");
                 }
 
-                Logger.Info($"Loaded staff members: {string.Join(", ", StaffMembers.Keys)}");
+                if (!File.Exists(ConfigPath))
+                {
+                    Logger.Warn("Config.yml not found. Creating default example config...");
+                    CreateExampleConfig();
+                    Logger.Warn("Please configure your staff members and restart the server.");
+                    return;
+                }
+
+                var deserializer = new DeserializerBuilder().Build();
+                using var reader = new StreamReader(ConfigPath);
+
+                var rawConfig = deserializer.Deserialize<Dictionary<string, string>>(reader);
+
+                if (rawConfig == null || rawConfig.Count == 0)
+                {
+                    Logger.Warn("Config.yml is empty or invalid. No staff members loaded.");
+                    return;
+                }
+
+                StaffMembers = rawConfig
+                    .ToDictionary(x => x.Key.Trim().ToLower(), x => new StaffInfo { RankName = x.Value });
+
+                Logger.Info($"Loaded {StaffMembers.Count} staff members: {string.Join(", ", StaffMembers.Keys)}");
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                Logger.Error($"Error while loading config: {e.Message}");
+                Logger.Error($"Error loading config.yml: {ex.Message}");
             }
         }
 
@@ -52,21 +64,19 @@ namespace StaffTimeCounterV2
             {
                 var exampleConfig = new Dictionary<string, string>
                 {
-                    { "76561198047345881@steam", "owner" }, // Example staff
+                    { "76561198047345881@steam", "owner" },
                     { "76561199048565475@steam", "head_of_staff" }
                 };
 
                 var serializer = new SerializerBuilder().Build();
-                using (var writer = new StreamWriter(ConfigPath))
-                {
-                    serializer.Serialize(writer, exampleConfig);
-                }
+                using var writer = new StreamWriter(ConfigPath);
+                serializer.Serialize(writer, exampleConfig);
 
-                Logger.Info("Example config.yml has been created. Please configure the plugin.");
+                Logger.Info("Example config.yml created successfully.");
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                Logger.Error($"Error while creating example config: {e.Message}");
+                Logger.Error($"Error creating example config.yml: {ex.Message}");
             }
         }
     }
