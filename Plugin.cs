@@ -12,7 +12,7 @@ namespace StaffTimeCounterV2
         public override string Name => "StaffTimeCounterV2";
         public override string Author => "LaFesta1749";
         public override string Prefix => "stcv2";
-        public override Version Version => new(1, 0, 8);
+        public override Version Version => new(1, 0, 9);
         public override Version RequiredExiledVersion => new(9, 6, 0);
 
         public ConfigManager ConfigManager { get; private set; } = null!;
