@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using YamlDotNet.Serialization;
+using static RoundSummary;
 using Player = Exiled.Events.Handlers.Player;
 
 namespace StaffTimeCounterV2
@@ -34,14 +35,45 @@ namespace StaffTimeCounterV2
         {
             Player.Verified += OnPlayerVerified;
             Player.Left += OnPlayerLeft;
-            Log.Debug("[TimeTracker] Registered to Player events (Verified, Left).");
+            Exiled.Events.Handlers.Server.RoundEnded += OnRoundEnded;
+            Log.Debug("[TimeTracker] Registered to Player events (Verified, Left, RoundEnded).");
         }
 
         public void Unregister()
         {
             Player.Verified -= OnPlayerVerified;
             Player.Left -= OnPlayerLeft;
-            Log.Debug("[TimeTracker] Unregistered from Player events (Verified, Left).");
+            Exiled.Events.Handlers.Server.RoundEnded -= OnRoundEnded;
+            Log.Debug("[TimeTracker] Unregistered from Player events (Verified, Left, RoundEnded).");
+        }
+
+        private void OnRoundEnded(Exiled.Events.EventArgs.Server.RoundEndedEventArgs ev)
+        {
+            Log.Debug("[TimeTracker] Round ended - processing active sessions...");
+
+            foreach (var entry in activeSessions.ToList())
+            {
+                string userId = entry.Key;
+                DateTime startTime = entry.Value;
+
+                TimeSpan duration = DateTime.UtcNow - startTime;
+                int minutesPlayed = (int)duration.TotalMinutes;
+                if (duration.TotalSeconds >= 30 && minutesPlayed == 0)
+                    minutesPlayed = 1;
+
+                if (minutesPlayed > 0 && Plugin.Instance.ConfigManager.StaffMembers.TryGetValue(userId, out StaffInfo staffInfo))
+                {
+                    staffInfo.ServerTime += minutesPlayed;
+
+                    var player = Exiled.API.Features.Player.List.FirstOrDefault(p => p.UserId.ToLower() == userId);
+                    string playerName = player?.Nickname ?? "Unknown";
+
+                    SaveDailyRecord(playerName, userId, staffInfo);
+                    Log.Debug($"[TimeTracker] [RoundEnd] Saved record for {playerName} ({userId}) - +{minutesPlayed} min");
+                }
+
+                activeSessions.Remove(userId);
+            }
         }
 
         private void OnPlayerVerified(Exiled.Events.EventArgs.Player.VerifiedEventArgs ev)
