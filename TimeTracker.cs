@@ -164,8 +164,8 @@ namespace StaffTimeCounterV2
                 var existingRecord = dailyRecords.FirstOrDefault(r => r.UserId == userId);
                 if (existingRecord != null)
                 {
-                    existingRecord.ServerTime = staffInfo.ServerTime;
-                    existingRecord.OverwatchTime = staffInfo.OverwatchTime;
+                    existingRecord.ServerTime += staffInfo.ServerTime;
+                    existingRecord.OverwatchTime += staffInfo.OverwatchTime;
                     Log.Debug($"[TimeTracker] Updated record for {playerName} ({userId}).");
                 }
                 else
