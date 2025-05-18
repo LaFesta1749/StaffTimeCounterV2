@@ -13,6 +13,7 @@ namespace StaffTimeCounterV2
 {
     public class TimeTracker
     {
+        private System.Timers.Timer? dayCheckTimer;
         private readonly Dictionary<string, DateTime> activeSessions = new();
         private readonly string timesDirectory;
 
@@ -37,6 +38,10 @@ namespace StaffTimeCounterV2
             Player.Left += OnPlayerLeft;
             Exiled.Events.Handlers.Server.RoundEnded += OnRoundEnded;
             Log.Debug("[TimeTracker] Registered to Player events (Verified, Left, RoundEnded).");
+            dayCheckTimer = new System.Timers.Timer(1000); // проверка на всяка секунда
+            dayCheckTimer.Elapsed += DayCheckTimerElapsed;
+            dayCheckTimer.AutoReset = true;
+            dayCheckTimer.Start();
         }
 
         public void Unregister()
@@ -45,6 +50,47 @@ namespace StaffTimeCounterV2
             Player.Left -= OnPlayerLeft;
             Exiled.Events.Handlers.Server.RoundEnded -= OnRoundEnded;
             Log.Debug("[TimeTracker] Unregistered from Player events (Verified, Left, RoundEnded).");
+            dayCheckTimer?.Stop();
+            dayCheckTimer?.Dispose();
+        }
+
+        private void DayCheckTimerElapsed(object sender, System.Timers.ElapsedEventArgs e)
+        {
+            DateTime now = DateTime.Now;
+
+            // Проверяваме само за Събота 23:59:59
+            if (now.DayOfWeek == DayOfWeek.Saturday && now.Hour == 23 && now.Minute == 59 && now.Second == 59)
+            {
+                Log.Debug("[TimeTracker] Saturday 23:59:59 reached. Ending current sessions before Sunday.");
+
+                foreach (var entry in activeSessions.ToList())
+                {
+                    string userId = entry.Key;
+                    DateTime startTime = entry.Value;
+                    TimeSpan duration = now - startTime;
+
+                    int minutesPlayed = (int)duration.TotalMinutes;
+                    if (duration.TotalSeconds >= 30 && minutesPlayed == 0)
+                        minutesPlayed = 1;
+
+                    if (minutesPlayed > 0 && Plugin.Instance.ConfigManager.StaffMembers.TryGetValue(userId, out StaffInfo staffInfo))
+                    {
+                        staffInfo.ServerTime += minutesPlayed;
+
+                        var player = Exiled.API.Features.Player.List.FirstOrDefault(p => p.UserId.ToLower() == userId);
+                        string playerName = player?.Nickname ?? "Unknown";
+
+                        SaveDailyRecord(playerName, userId, staffInfo);
+                        Log.Debug($"[TimeTracker] [SaturdayFinal] Saved record for {playerName} ({userId}) - +{minutesPlayed} min");
+
+                        // Нулирай за новата сесия
+                        staffInfo.ServerTime = 0;
+                    }
+
+                    // Рестартирай сесията за Неделя 00:00:00
+                    activeSessions[userId] = new DateTime(now.Year, now.Month, now.Day + 1, 0, 0, 0); // да избегнем повторен запис в същата секунда
+                }
+            }
         }
 
         private void OnRoundEnded(Exiled.Events.EventArgs.Server.RoundEndedEventArgs ev)
