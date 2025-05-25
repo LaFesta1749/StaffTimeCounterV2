@@ -52,14 +52,50 @@ namespace StaffTimeCounterV2
             Log.Debug("[TimeTracker] Unregistered from Player events (Verified, Left, RoundEnded).");
             dayCheckTimer?.Stop();
             dayCheckTimer?.Dispose();
+
+            // Запазваме всички активни сесии при изключване на плъгина
+            SaveAllActiveSessions();
+        }
+
+        private void SaveAllActiveSessions()
+        {
+            Log.Debug("[TimeTracker] Plugin unloading - saving all active sessions...");
+
+            foreach (var entry in activeSessions.ToList())
+            {
+                string userId = entry.Key;
+                DateTime startTime = entry.Value;
+
+                TimeSpan duration = DateTime.UtcNow - startTime;
+                int minutesPlayed = (int)duration.TotalMinutes;
+                if (duration.TotalSeconds >= 30 && minutesPlayed == 0)
+                    minutesPlayed = 1;
+
+                if (minutesPlayed > 0 && Plugin.Instance.ConfigManager.StaffMembers.TryGetValue(userId, out StaffInfo staffInfo))
+                {
+                    staffInfo.ServerTime += minutesPlayed;
+
+                    var player = Exiled.API.Features.Player.List.FirstOrDefault(p => p.UserId.ToLower() == userId);
+                    string playerName = player?.Nickname ?? "Unknown";
+
+                    SaveDailyRecord(playerName, userId, staffInfo);
+                    Log.Debug($"[TimeTracker] [PluginUnload] Saved record for {playerName} ({userId}) - +{minutesPlayed} min");
+
+                    // Нулираме времето след запис
+                    staffInfo.ServerTime = 0;
+                }
+            }
+
+            activeSessions.Clear();
         }
 
         private void DayCheckTimerElapsed(object sender, System.Timers.ElapsedEventArgs e)
         {
-            DateTime now = DateTime.Now;
+            DateTime now = DateTime.UtcNow; // Използваме UTC време за консистентност
+            DateTime localNow = DateTime.Now; // Използваме локално време само за проверка на деня от седмицата
 
-            // Проверяваме само за Събота 23:59:59
-            if (now.DayOfWeek == DayOfWeek.Saturday && now.Hour == 23 && now.Minute == 59 && now.Second == 59)
+            // Проверяваме само за Събота 23:59:59 (локално време)
+            if (localNow.DayOfWeek == DayOfWeek.Saturday && localNow.Hour == 23 && localNow.Minute == 59 && localNow.Second >= 59)
             {
                 Log.Debug("[TimeTracker] Saturday 23:59:59 reached. Ending current sessions before Sunday.");
 
@@ -83,12 +119,12 @@ namespace StaffTimeCounterV2
                         SaveDailyRecord(playerName, userId, staffInfo);
                         Log.Debug($"[TimeTracker] [SaturdayFinal] Saved record for {playerName} ({userId}) - +{minutesPlayed} min");
 
-                        // Нулирай за новата сесия
+                        // Нулираме времето след запис
                         staffInfo.ServerTime = 0;
                     }
 
-                    // Рестартирай сесията за Неделя 00:00:00
-                    activeSessions[userId] = new DateTime(now.Year, now.Month, now.Day + 1, 0, 0, 0); // да избегнем повторен запис в същата секунда
+                    // Рестартираме сесията за новата седмица
+                    activeSessions[userId] = now;
                 }
             }
         }
@@ -116,9 +152,13 @@ namespace StaffTimeCounterV2
 
                     SaveDailyRecord(playerName, userId, staffInfo);
                     Log.Debug($"[TimeTracker] [RoundEnd] Saved record for {playerName} ({userId}) - +{minutesPlayed} min");
+
+                    // Нулираме времето след запис
+                    staffInfo.ServerTime = 0;
                 }
 
-                activeSessions.Remove(userId);
+                // Обновяваме началното време на сесията вместо да я премахваме
+                activeSessions[userId] = DateTime.UtcNow;
             }
         }
 
@@ -140,7 +180,7 @@ namespace StaffTimeCounterV2
 
             if (Plugin.Instance.ConfigManager.StaffMembers.ContainsKey(userId))
             {
-                activeSessions[userId] = DateTime.UtcNow;
+                activeSessions[userId] = DateTime.UtcNow; // Използваме UTC време
                 Log.Debug($"[TimeTracker] Started tracking {ev.Player.Nickname} ({ev.Player.UserId}).");
             }
             else
@@ -164,7 +204,7 @@ namespace StaffTimeCounterV2
 
             if (activeSessions.TryGetValue(userId, out DateTime startTime))
             {
-                TimeSpan duration = DateTime.UtcNow - startTime;
+                TimeSpan duration = DateTime.UtcNow - startTime; // Използваме UTC време
 
                 int minutesPlayed = (int)duration.TotalMinutes;
                 if (duration.TotalSeconds >= 30 && minutesPlayed == 0)
@@ -174,14 +214,18 @@ namespace StaffTimeCounterV2
                 {
                     staffInfo.ServerTime += minutesPlayed;
                     SaveDailyRecord(ev.Player.Nickname, ev.Player.UserId, staffInfo);
+
+                    // Нулираме времето след запис
+                    staffInfo.ServerTime = 0;
+
+                    Log.Debug($"[TimeTracker] Stopped tracking {ev.Player.Nickname} ({ev.Player.UserId}), played {minutesPlayed} minutes.");
                 }
                 else
                 {
-                    Log.Debug($"[TimeTracker] {ev.Player.Nickname} played less than 30 seconds. Skipping save.");
+                    Log.Debug($"[TimeTracker] {ev.Player.Nickname} played less than 30 seconds or not found in StaffMembers. Skipping save.");
                 }
 
                 activeSessions.Remove(userId);
-                Log.Debug($"[TimeTracker] Stopped tracking {ev.Player.Nickname} ({ev.Player.UserId}), played {minutesPlayed} minutes.");
             }
             else
             {
@@ -193,6 +237,7 @@ namespace StaffTimeCounterV2
         {
             try
             {
+                // Използваме локално време за името на файла, за да съответства на деня
                 string todayDate = DateTime.Now.ToString("dd_MM_yyyy");
                 string fileName = $"StaffTimeCounter_Day_{todayDate}.yml";
                 string filePath = Path.Combine(timesDirectory, fileName);
@@ -212,7 +257,7 @@ namespace StaffTimeCounterV2
                 {
                     existingRecord.ServerTime += staffInfo.ServerTime;
                     existingRecord.OverwatchTime += staffInfo.OverwatchTime;
-                    Log.Debug($"[TimeTracker] Updated record for {playerName} ({userId}).");
+                    Log.Debug($"[TimeTracker] Updated record for {playerName} ({userId}). Total time: {existingRecord.ServerTime} minutes.");
                 }
                 else
                 {
@@ -224,7 +269,7 @@ namespace StaffTimeCounterV2
                         ServerTime = staffInfo.ServerTime,
                         OverwatchTime = staffInfo.OverwatchTime
                     });
-                    Log.Debug($"[TimeTracker] Added new record for {playerName} ({userId}).");
+                    Log.Debug($"[TimeTracker] Added new record for {playerName} ({userId}). Time: {staffInfo.ServerTime} minutes.");
                 }
 
                 var serializer = new SerializerBuilder().Build();
