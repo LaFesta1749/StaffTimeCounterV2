@@ -1,3 +1,6 @@
+[![Downloads](https://img.shields.io/github/downloads/LaFesta1749/StaffTimeCounterV2/total?label=Downloads&color=333333&style=for-the-badge)](https://github.com/LaFesta1749/StaffTimeCounterV2/releases/latest)
+[![Discord](https://img.shields.io/badge/Discord-Join-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/PTmUuxuDXQ)
+
 # StaffTimeCounterV2
 
 **StaffTimeCounterV2** is a powerful and lightweight **Exiled plugin** for **SCP: Secret Laboratory**, designed specifically to **track and record the playtime** of **Staff Members** (Admins, Moderators, etc.) on your server.
@@ -6,7 +9,7 @@ It automatically saves daily playtime statistics into YAML files, provides detai
 
 ---
 
-## ✨ Short Description for GitHub
+## ✨ Short Description
 
 > A high-precision Exiled plugin for SCP:SL that tracks, records, and summarizes staff playtime with daily logging.
 
